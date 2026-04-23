@@ -30,6 +30,16 @@ bin/buildout -c deployment.cfg
 # starts ZEO server (8101) + instance as ZEO client (8090)
 ```
 
+## Testing changes
+
+After making changes, verify nothing breaks by running the dev server and checking for errors:
+
+```
+bin/instance fg       # start dev server, watch logs for traceback/failure messages
+```
+
+The instance will log any import errors, missing dependencies, or configuration issues on startup. Check the console output for failures before proceeding.
+
 ## Source layout
 
 All packages are namespace packages under `src/`, managed by `mr.developer` from git:
