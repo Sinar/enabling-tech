@@ -11,6 +11,18 @@ bin/zopepy            # interactive Plone shell
 bin/update_locale     # regenerate i18n catalogs
 ```
 
+## Initialize project
+
+1. Ensure `uv` is installed
+2. Check for `.venv` virtual environment for the supported Python version (3.12)
+   - If `.venv` exists → activate it
+   - If `.venv` doesn't exist → create it with `uv venv --python 3.12` then activate
+3. Install recommended build tool versions from Plone 6.0.15:
+   - `zc.buildout = 4.1.4`
+   - `wheel = 0.45.1`
+   - `setuptools = 75.8.2`
+4. Run `bin/buildout` to bootstrap the project
+
 ## Deployment mode
 
 ```
