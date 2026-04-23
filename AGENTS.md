@@ -30,16 +30,6 @@ bin/buildout -c deployment.cfg
 # starts ZEO server (8101) + instance as ZEO client (8090)
 ```
 
-## Testing changes
-
-After making changes, verify nothing breaks by running the dev server and checking for errors:
-
-```
-bin/instance fg       # start dev server, watch logs for traceback/failure messages
-```
-
-The instance will log any import errors, missing dependencies, or configuration issues on startup. Check the console output for failures before proceeding.
-
 ## Source layout
 
 All packages are namespace packages under `src/`, managed by `mr.developer` from git:
@@ -58,6 +48,15 @@ All packages are namespace packages under `src/`, managed by `mr.developer` from
 | `sinar.resource` | Resource content type |
 | `collective.vocabularies.iso` | ISO country/currency vocabularies |
 
+## Testing changes
+
+After making changes, verify nothing breaks:
+
+1. Run per-package tests: `cd src/<pkg> && tox`
+2. Start the dev server and watch for errors: `bin/instance fg`
+
+The instance will log any import errors, missing dependencies, or configuration issues on startup. Check the console output for failures before proceeding.
+
 ## Gotchas
 
 - **`mr.developer` auto-checks out every package** (`auto-checkout = *`, `always-checkout = true`). Never edit checked-out packages directly — make changes in the git working copy and re-run buildout.
@@ -65,7 +64,6 @@ All packages are namespace packages under `src/`, managed by `mr.developer` from
 - **`eea.facetednavigation`** appears in `.installed.cfg` but not in `buildout.cfg` — it was likely added manually at some point.
 - **`sinar.article` and `sinar.organization`** are on the `plone-6-update` branch. Other packages may still target Plone 5.2.
 - **`sinar.miscbehavior`, `sinar.organization`, `sinar.project`, `collective.vocabularies.iso`** declare compatibility with Plone 4.3/5.x — verify before assuming Plone 6-only behavior.
-- Tests run **per-package** via `tox` (in each package's `tox.ini`). There is no root test command.
 - Lint/format: `isort`, `flake8`, `black`. Run per-package: `cd src/<pkg> && tox -e lint` or `tox -e black-check`.
 
 ## Commit messages
