@@ -1,6 +1,11 @@
 # Enabling-Tech — Agent Quick Reference
 
-Plone 6.0.15 CMS project. Buildout-driven, Python 3.12, GPLv2.
+Plone 6.1.5 CMS project. Buildout-driven, Python 3.12, GPLv2.
+
+This branch (`plone-6.1`) targets Plone 6.1; `main` stays on Plone 6.0.15.
+All `src/*` packages are checked out from their `plone-6.1` git branches
+(shared with the sibling `~/src/sinarproject.org` workspace — see the
+`ploneupgrade` skill under `.opencode/skills/`).
 
 ## Boot
 
@@ -17,10 +22,14 @@ bin/update_locale     # regenerate i18n catalogs
 2. Check for `.venv` virtual environment for the supported Python version (3.12)
    - If `.venv` exists → activate it
    - If `.venv` doesn't exist → create it with `uv venv --python 3.12` then activate
-3. Install recommended build tool versions from Plone 6.0.15:
-   - `zc.buildout = 4.1.4`
-   - `wheel = 0.45.1`
-   - `setuptools = 75.8.2`
+3. Install recommended build tool versions from Plone 6.1.5:
+   - `zc.buildout = 4.2.0`
+   - `wheel = 0.47.0`
+   - `setuptools = 81.0.0`
+   - WARNING: `uv pip install` targets `$VIRTUAL_ENV` when it is set — in
+     this multi-workspace machine it can point at another project's venv.
+     Check `echo $VIRTUAL_ENV` before installing; pin the env explicitly
+     with `VIRTUAL_ENV=$PWD/.venv uv pip install ...`
 4. Run `bin/buildout` to bootstrap the project
 
 ## Deployment mode
@@ -62,8 +71,21 @@ The instance will log any import errors, missing dependencies, or configuration 
 - **`mr.developer` auto-checks out every package** (`auto-checkout = *`, `always-checkout = true`). Never edit checked-out packages directly — make changes in the git working copy and re-run buildout.
 - **`deployment.cfg` adds `sinar.advisory`** (not present in `src/`, only in the buildout sources section). It will fail if the repo is missing.
 - **`eea.facetednavigation`** appears in `.installed.cfg` but not in `buildout.cfg` — it was likely added manually at some point.
-- **`sinar.organization`** is on the `plone-6-update` branch. Other packages may still target Plone 5.2.
-- **`sinar.miscbehavior`, `sinar.organization`, `sinar.project`** declare compatibility with Plone 4.3/5.x — verify before assuming Plone 6-only behavior.
+- **All source packages are on their `plone-6.1` branches** (per
+  `[sources]` in `buildout.cfg` / `deployment.cfg`). `main` in each
+  package repo is the Plone 6.0.15 line — commit 6.1 work to
+  `plone-6.1`, never to `main`.
+- **Venv `nspkg.pth` pitfall:** after any venv rebuild,
+  `.venv/lib/python3.12/site-packages/zc.buildout-*-nspkg.pth` may
+  reappear and silently break `bin/instance` / `bin/zopepy`
+  (`ModuleNotFoundError: No module named 'zc.relation'`). Remove the
+  file; see the `ploneupgrade` skill.
+- **Port 8080 collision:** another workspace on this machine
+  (`kaeru.my`) also wants 8080. Check `ss -ltnp` before starting; use a
+  spare port via `fast-listen` in `parts/instance/etc/wsgi.ini` if needed.
+- **ZODB holds two sites** (`/ET/` live, `/enabling-tech/` dev); `/`
+  serves the plone.distribution multi-site overview. Site-root changes
+  apply per site.
 - Lint/format: `isort`, `flake8`, `black`. Run per-package: `cd src/<pkg> && tox -e lint` or `tox -e black-check`.
 
 ## Commit messages
