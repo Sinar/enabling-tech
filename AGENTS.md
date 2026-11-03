@@ -30,6 +30,12 @@ bin/update_locale     # regenerate i18n catalogs
      this multi-workspace machine it can point at another project's venv.
      Check `echo $VIRTUAL_ENV` before installing; pin the env explicitly
      with `VIRTUAL_ENV=$PWD/.venv uv pip install ...`
+   - The `zc.buildout==4.2.0` wheel ships a broken
+     `zc.buildout-4.2.0-py3.13-nspkg.pth`; pip drops it into the venv.
+     Remove it right after installing:
+     `rm .venv/lib/python3.12/site-packages/zc.buildout-*-nspkg.pth`
+     (see the nspkg.pth gotcha below — deployment/ZEO will not start
+     without this)
 4. Run `bin/buildout` to bootstrap the project
 
 ## Deployment mode
@@ -38,6 +44,14 @@ bin/update_locale     # regenerate i18n catalogs
 bin/buildout -c deployment.cfg
 # starts ZEO server (8101) + instance as ZEO client (8090)
 ```
+
+ZEO server children run via `parts/zeo/bin/runzeo` — a bare
+`python -m ZEO.runzeo` (no `pkg_resources` import to repair the `zc`
+namespace). If the venv contains a `zc.buildout-*-nspkg.pth` file, ZEO
+dies in a restart loop with
+`ModuleNotFoundError: No module named 'zc.lockfile'` (from
+`ZODB.FileStorage`). The dev build hides this because `bin/instance` and
+`bin/zopepy` import `pkg_resources` first, which repairs the namespace.
 
 ## Source layout
 
@@ -75,11 +89,18 @@ The instance will log any import errors, missing dependencies, or configuration 
   `[sources]` in `buildout.cfg` / `deployment.cfg`). `main` in each
   package repo is the Plone 6.0.15 line — commit 6.1 work to
   `plone-6.1`, never to `main`.
-- **Venv `nspkg.pth` pitfall:** after any venv rebuild,
-  `.venv/lib/python3.12/site-packages/zc.buildout-*-nspkg.pth` may
-  reappear and silently break `bin/instance` / `bin/zopepy`
-  (`ModuleNotFoundError: No module named 'zc.relation'`). Remove the
-  file; see the `ploneupgrade` skill.
+- **Venv `nspkg.pth` pitfall:** `uv pip install zc.buildout==4.2.0`
+  *always* drops `zc.buildout-4.2.0-py3.13-nspkg.pth` into
+  `.venv/lib/python3.12/site-packages/` (the wheel ships it). At
+  interpreter startup it pre-seeds `sys.modules['zc']` with a
+  `__path__` limited to the venv's site-packages, shadowing the PEP 420
+  namespace — any `zc.*` package that lives in `eggs/`
+  (`zc.lockfile`, `zc.relation`, ...) then fails to import
+  (`ModuleNotFoundError`). Scripts that import `pkg_resources` first
+  (`bin/instance`, `bin/zopepy`) survive because pkg_resources repairs
+  the namespace; bare-`python` entry points like ZEO's `runzeo` do not.
+  Remove the file after every venv (re)build (the init steps above do
+  this); see the `ploneupgrade` skill.
 - **Port 8080 collision:** another workspace on this machine
   (`kaeru.my`) also wants 8080. Check `ss -ltnp` before starting; use a
   spare port via `fast-listen` in `parts/instance/etc/wsgi.ini` if needed.
@@ -91,8 +112,7 @@ The instance will log any import errors, missing dependencies, or configuration 
 ## Commit messages
 
 - Author: check current git user via `git config user.name`
-- Follow [Conventional Commits](https://github.com/conventional-commits/conventionalcommits.org/blob/master/content/v1.0.0/index.md) with multi-paragraph bodies (summary, blank line, explanation, blank line, attribution)
-- If AI-assisted, add the attribution line at the end using the format `Assisted-by: <AGENT_NAME>:<MODEL_VERSION>` (see [Linux Kernel AI Attribution](https://github.com/torvalds/linux/blob/master/Documentation/process/coding-assistants.rst))
+- Follow [Conventional Commits](https://github.com/conventional-commits/conventionalcommits.org/blob/master/content/v1.0.0/index.md) with multi-paragraph bodies (summary, blank line, explanation)
 
 ## Content model highlights
 
